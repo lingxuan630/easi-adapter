@@ -4,51 +4,78 @@
  * 实现Nodejs与Java的数据通信
  * 通过Adapter实现reducer的功能
  */
-var ClassBase = require('./libs/class');
+
 var _ = require('lodash');
-var JJV  = require('jjv');
+var JJV = require('jjv');
+var deepExtend = require('deep-extend');
+var Q = require('q');
+
+var ClassBase = require('./libs/class');
 var HttpServiceCaller = require('/.adapters/http');
+var Errors = require('./libs/error');
 
 var Action = ClassBase.extend({
-	options: {
-		actions: {},
-		defaultAdapter: 'http',
-		// 调用http
-		http: {},
-	},
-	initialize: function(options){
-		
-	},
-	// 设置全局使用的actions
-	useActions: function(actions){
-		this.options.actions = actions;
-		return this;
-	},
-	dispatch: function(actionName, params, options){
-		var action;
-		if(_.has(this.actions, actionName)){
-			action = this.actions[actionName] ? this.actions[actionName] : {};
-		}else{
-			throw new Error('actionName: ' + actionName + ' is not exist!');
-		}
+  options: {
+    actions: {},
+    defaultAdapter: 'http',
+    // 调用http所需要的配置
+    http: {
+      options: {}
+      apis: {}
+    }
+  },
+  initialize: function(options) {
+    this.options = deepExtend(this.options, options);
+    this.httpAdapter = new HttpServiceCaller(this.options.http.apis, this.options.http.options);
+  },
+  // 设置全局使用的actions
+  useActions: function(actions) {
+    this.options.actions = actions;
+    return this;
+  },
+  dispatch: function(actionName, params, options) {
+    var action;
+    var deferred = Q.defer();
+    if (_.has(this.actions, actionName)) {
+      action = this.actions[actionName] ? this.actions[actionName] : {};
+    } else {
+      throw new Error('actionName: ' + actionName + ' is not exist!');
+    }
 
-		var paramsFiltered = this.validateParams(action.params, params);
+    this.validateParams(action.params, params)
+      .then(
+        function(paramsFiltered) {
+          HttpServiceCaller(actionName, paramsFiltered, {})
+            .then(function(resp) {
+            		deferred.resolve(resp);
+              },
+              function(error) {
+              	deferred.reject(error);
+              }
+            )
+        },
+        function(error) {
+        	deferred.reject(error);
+        }
+      );
 
-		return HttpServiceCaller(actionName, paramsFiltered, action.schema, options, this.req.session);
-	},
-	validateParams: function(schema, params){
-		if(_.isEmpty(schema)){
-			return params;
-		}
+    return deferred.promise;
+  },
+  validateParams: function(schema, params) {
+    if (_.isEmpty(schema)) {
+      return Q.when(params);
+    }
 
-		var validator = new JJV();
-		var errors = validator.validate(schema, params);
-		if(!errors){
-			return params;
-		}else{
-			console.log('[validate][fail]validate params Fail, for: ' + JSON.stringify(errors));
-		}
-	}
+    var validator = new JJV();
+    return Q.when(function() {
+      var errors = validator.validate(schema, params);
+      if (!errors) {
+        return params;
+      } else {
+        throw new Errors.HTTPError('[validate][fail]validate params Fail, for: ' + JSON.stringify(errors), 500);
+      }
+    })
+  }
 
 });
 
