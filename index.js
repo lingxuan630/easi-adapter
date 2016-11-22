@@ -4,25 +4,27 @@
  * 实现Nodejs与Java的数据通信
  * 通过Adapter实现reducer的功能
  */
-var ClassBase = require(APP_PATH + '/core/class');
+var ClassBase = require('./libs/class');
 var _ = require('lodash');
 var JJV  = require('jjv');
-var ServiceCaller = require(APP_PATH + '/adapters/service');
-var allActions = require(APP_PATH + '/actions/index');
+var HttpServiceCaller = require('/.adapters/http');
+
 var Action = ClassBase.extend({
-	req: {},
-	actions: allActions,
-	set: function(actions){
-		this.actions = actions;
-		return this;
+	options: {
+		actions: {},
+		defaultAdapter: 'http',
+		// 调用http
+		http: {},
 	},
-	setReq: function(req){
-		// 添加req主要是为了加载auth token
-		this.req = req;
+	initialize: function(options){
+		
+	},
+	// 设置全局使用的actions
+	useActions: function(actions){
+		this.options.actions = actions;
 		return this;
 	},
 	dispatch: function(actionName, params, options){
-
 		var action;
 		if(_.has(this.actions, actionName)){
 			action = this.actions[actionName] ? this.actions[actionName] : {};
@@ -32,7 +34,7 @@ var Action = ClassBase.extend({
 
 		var paramsFiltered = this.validateParams(action.params, params);
 
-		return ServiceCaller(actionName, paramsFiltered, action.schema, options, this.req.session);
+		return HttpServiceCaller(actionName, paramsFiltered, action.schema, options, this.req.session);
 	},
 	validateParams: function(schema, params){
 		if(_.isEmpty(schema)){

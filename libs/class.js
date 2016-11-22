@@ -6,7 +6,9 @@
 
 var _ = require('lodash');
 
-function ClassBase() {}
+function ClassBase(options) {
+  this.initialize.apply(this, arguments);
+}
 
 ClassBase.create = function(options) {
   var self = Object.create(this);
