@@ -1,0 +1,30 @@
+{
+  "name": "easi-adapter",
+  "version": "0.0.1",
+  "description": "easi-adapter: easy way to fetch data from node server.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lingxuan630/easi-adapter.git"
+  },
+  "keywords": [
+    "adapter",
+    "easi-adapter"
+  ],
+  "author": "linson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lingxuan630/easi-adapter/issues"
+  },
+  "homepage": "https://github.com/lingxuan630/easi-adapter#readme",
+  "dependencies": {
+    "deep-extend": "^0.4.1",
+    "jjv": "^1.0.2",
+    "lodash": "^4.17.2",
+    "q": "^1.4.1",
+    "request": "^2.79.0"
+  }
+}
