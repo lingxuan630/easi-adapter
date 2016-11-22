@@ -52,20 +52,19 @@ var HttpServiceCaller = ClassBase.extend({
 
     // 当发现api信息不存在时返回400报错
     if (!_.has(apis, actionName)) {
-      return Q.when(function() {
+      return Q.fcall(function() {
         throw new Errors.HTTPError('API "' + actionName + '" is not found', 400);
       });
     }
+
+    var requestOptions = thisOptions.request;
+    var thisAPI = apis[actionName];
 
     // 合并单个请求的自定义配置进来
     if (!_.isEmpty(thisAPI.options)) {
       thisOptions = deepExtend(thisOptions, thisAPI.options);
     }
 
-    var requestOptions = thisOptions.request;
-    var thisAPI = apis[actionName];
-
-    // 参数处理
     params = _.isFunction(params) ? params(thisAPI, thisOptions) : params;
     requestOptions.uri = Utils.parseRestUrl(thisAPI.url, _.extend(thisOptions.locals, params));
 
@@ -79,7 +78,6 @@ var HttpServiceCaller = ClassBase.extend({
         if (!!thisOptions.json) {
           requestOptions.body = params;
         } else {
-          0
           requestOptions.form = params;
         }
       }
@@ -93,21 +91,22 @@ var HttpServiceCaller = ClassBase.extend({
       }
 
       // 此处考虑通过中间件方式重写
-      if (isEmpty(thisOptions.filter)) {
-        var respData = thisAPI.parse(body, response);
-        parseResp(respData, thisOptions.schema, deferred);
+      if (!_.isFunction(thisOptions.filter)) {
+        var respData = thisAPI.parse ? thisAPI.parse(body, response) : body;
+        parseResp(respData, thisOptions.schema, response, deferred);
       } else {
         thisOptions.filter(body, response)
           .then(
             function(resp) {
               var respData = thisAPI.parse(resp, response);
-              parseResp(respData, thisOptions.schema, deferred);
+              parseResp(respData, thisOptions.schema, response, deferred);
             },
             function(filterError) {
               deferred.reject(filterError);
             }
           )
       }
+
     });
 
     return deferred.promise;
@@ -117,7 +116,7 @@ var HttpServiceCaller = ClassBase.extend({
 /**
  * [parseResp 格式化返回的数据]
  */
-function parseResp(resp, schema, deferred) {
+function parseResp(respData, schema, response, deferred) {
   var validateResult = validateResp(respData, schema);
   if (validateResult.status === 'success') {
     deferred.resolve(validateResult.resp, response);

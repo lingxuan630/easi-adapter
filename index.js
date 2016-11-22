@@ -11,7 +11,7 @@ var deepExtend = require('deep-extend');
 var Q = require('q');
 
 var ClassBase = require('./libs/class');
-var HttpServiceCaller = require('/.adapters/http');
+var HttpServiceCaller = require('./adapters/http');
 var Errors = require('./libs/error');
 
 var Action = ClassBase.extend({
@@ -20,7 +20,7 @@ var Action = ClassBase.extend({
     defaultAdapter: 'http',
     // 调用http所需要的配置
     http: {
-      options: {}
+      options: {},
       apis: {}
     }
   },
@@ -35,17 +35,20 @@ var Action = ClassBase.extend({
   },
   dispatch: function(actionName, params, options) {
     var action;
+    var vm = this;
     var deferred = Q.defer();
-    if (_.has(this.actions, actionName)) {
-      action = this.actions[actionName] ? this.actions[actionName] : {};
+    if (_.has(this.options.actions, actionName)) {
+      action = this.options.actions[actionName] ? this.options.actions[actionName] : {};
     } else {
-      throw new Error('actionName: ' + actionName + ' is not exist!');
+      return Q.fcall(function(){
+        throw new Error('actionName: ' + actionName + ' is not exist!');
+      })
     }
 
     this.validateParams(action.params, params)
       .then(
         function(paramsFiltered) {
-          HttpServiceCaller(actionName, paramsFiltered, {})
+          vm.httpAdapter.request(actionName, paramsFiltered, options)
             .then(function(resp) {
             		deferred.resolve(resp);
               },
