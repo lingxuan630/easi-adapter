@@ -98,7 +98,7 @@ var HttpServiceCaller = ClassBase.extend({
         thisOptions.filter(body, response)
           .then(
             function(resp) {
-              var respData = thisAPI.parse(resp, response);
+              var respData = thisAPI.parse ? thisAPI.parse(resp, response) : resp;
               parseResp(respData, thisOptions.schema, response, deferred);
             },
             function(filterError) {
